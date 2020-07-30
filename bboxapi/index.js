@@ -10,7 +10,11 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
+
+
+//app.use(express.json())
+
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 const client = new Client({
@@ -25,15 +29,17 @@ client.connect();
 
 app.get('/', (req, res) => res.send('BBox API Developed by Karpagam Institue of Technology for SIH 2020'))
 
-app.get('/data', function (req, res) {
+
+app.post('/data', function (req, res) {
     
-    if (!req.query.xmin && !req.query.ymin && !req.query.xmax && !req.query.ymax)
+    
+    if (!req.body.west && !req.body.south && !req.body.east && !req.body.north)
     {
         res.send('Send BBOX xmin, ymin, xmax, ymax')
         return;
     }
-    console.log("ewrwer")
-    var tower_query = "SELECT json_build_object('type', 'FeatureCollection','crs',  json_build_object('type','name','properties', json_build_object('name','EPSG:4326')),'features', json_agg(json_build_object('type','Feature','geometry',ST_AsGeoJSON(geom)::json,'properties', json_build_object('cell', cell,'long', long,'lat',lat)))) FROM towers WHERE geom && ST_SetSRID('BOX3D("+req.query.xmin+" "+req.query.ymin+","+req.query.xmax+" "+req.query.ymax+")'::box3d,4326)";
+
+    var tower_query = "SELECT json_build_object('type', 'FeatureCollection','crs',  json_build_object('type','name','properties', json_build_object('name','EPSG:4326')),'features', json_agg(json_build_object('type','Feature','geometry',ST_AsGeoJSON(geom)::json,'properties', json_build_object('radio', radio,'mcc',mcc,'net',net,'area',area,'cell', cell,'long', long,'lat',lat,'range',range)))) FROM towers WHERE geom && ST_SetSRID('BOX3D("+req.body.west+" "+req.body.south+","+req.body.east+" "+req.body.north+")'::box3d,4326)";
     var query = client.query(new Query(tower_query));
     query.on("row", function (row, result) {
         result.addRow(row);
