@@ -12,7 +12,7 @@ L.UGeoJSONLayer = L.GeoJSON.extend({
       minzoom: 0,
       enctype: 'json', //urlencoded || form-data || json
       transformData: function (data) { return data; },
-      afterFetch: function () {
+      afterFetch: function (data) {
           
       },
       after: function (data) {      
@@ -116,7 +116,7 @@ L.UGeoJSONLayer = L.GeoJSON.extend({
           }
                             
          
-          self.options.afterFetch();
+          self.options.afterFetch(data);
           self.callback(data);
         }
       };
@@ -138,7 +138,7 @@ L.UGeoJSONLayer = L.GeoJSON.extend({
           request.send(urlencoded);
         } else {
           // json request
-          console.log(postData)
+         
           request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
           request.send(JSON.stringify(postData));
         }

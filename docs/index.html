@@ -10,14 +10,18 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
     integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
     crossorigin="" />
-    <link rel="stylesheet" href="css/MarkerCluster.css"/> 
+  <link rel="stylesheet" href="css/MarkerCluster.css" />
+
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
     integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
     crossorigin=""></script>
-    <script src="js/leaflet.markercluster.js"></script>
+  <script src="js/leaflet.markercluster.js"></script>
+  <script src="js/Leaflet.Control.Custom.js"></script>
 
-  
-  
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+
+
   <script src="js/uGeoJSON.js"></script>
   <style>
     body {
@@ -37,9 +41,18 @@
 
 <body>
 
-  <div id="map"></div>
+
+
+
+
+
+
+  <div id="map"> </div>
+
+
 
   <script>
+
     var map = L.map('map');
     map.fitBounds([
       [10.958466742681587, 76.93983078002931],
@@ -48,9 +61,11 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-    var clusters =  L.markerClusterGroup()
+    var clusters = L.markerClusterGroup()
+    var myData;
+
     function onPoint(geoJsonPoint, latlng) {
-     
+
       if (geoJsonPoint.properties.radio == 'GSM') {
         var smallIcon = new L.Icon({
           iconSize: [27, 27],
@@ -78,49 +93,123 @@
         });
       }
 
-     var marker=L.marker(latlng, { icon: smallIcon })
-     clusters.addLayer(marker);
-     marker.bindPopup("Cellid : " + geoJsonPoint.properties.cell.toString() + "<br/>Latitude : " + geoJsonPoint.properties.lat.toString() + "<br/>Longtitude : " + geoJsonPoint.properties.long.toString());
-   
-     //L.marker(latlng, { icon: smallIcon });
+      var marker = L.marker(latlng, { icon: smallIcon })
+      clusters.addLayer(marker);
+      marker.bindPopup("Cellid : " + geoJsonPoint.properties.cell.toString() + "<br/>Latitude : " + geoJsonPoint.properties.lat.toString() + "<br/>Longtitude : " + geoJsonPoint.properties.lat.toString());
+
     }
-   // var clusters =  L.markerClusterGroup()
+
     function onEachFeature(feature, layer) {
-      // does this feature have a property named popupContent?      
-      //layer.addTo(clusters);
+
       console.log("in oneachfeature")
       if (feature.properties && feature.properties.cell) {
         layer.bindPopup("Cellid : " + feature.properties.cell.toString() + "<br/>Latitude : " + feature.properties.lat.toString() + "<br/>Longtitude : " + feature.properties.lat.toString());
       }
     }
-    
-    function clearLayers(){
+
+
+
+    var afterFetch = function (data) {
       clusters.clearLayers()
+      myData = data;
+
     }
 
+    for (let input of document.querySelectorAll('input')) {
+      //Listen to 'change' event of all inputs
+      input.onchange = (e) => {
+        clusters.clearLayers()
+        updateCheckboxStates()
+        //  clusters.addData(myData) 
+        var a = L.geoJSON(myData, {
+          pointToLayer: onPoint,
+          filter: (feature) => {
+
+            const isEventTypeChecked = checkboxStates.eventTypes.includes(feature.properties.radio)
+            return isEventTypeChecked
+          }
+        }).addTo(map);
+
+        map.addLayer(clusters);
+      }
+
+
+
+    }
+
+    function updateCheckboxStates() {
+      checkboxStates = {
+        years: [],
+        eventTypes: []
+      }
+
+      for (let input of document.querySelectorAll('input')) {
+        if (input.checked) {
+          switch (input.className) {
+            case 'event-type': checkboxStates.eventTypes.push(input.value); break
+
+          }
+        }
+      }
+    }
+    let checkboxStates
     L.uGeoJSONLayer({
       endpoint: "https://kitsihbboxapi.herokuapp.com/data",
       pointToLayer: onPoint,
       onEachFeature: onEachFeature,
-      afterFetch: clearLayers,
+      afterFetch,
+      filter: (feature) => {
+        const isEventTypeChecked = checkboxStates.eventTypes.includes(feature.properties.radio)
+        return isEventTypeChecked
+      }
     }).addTo(map);
 
     map.addLayer(clusters);
-  /*  var rodents =L.uGeoJSONLayer({
-      endpoint: "https://kitsihbboxapi.herokuapp.com/data",afterFetch: addCluster}).addTo(map);
+    L.control.custom({
+      position: 'topright',
+      content: '<div class="inputs" id="event-types">' +
+        '<input type="checkbox" class="event-type" name="GSM" value="GSM" checked="true">' +
+        '<label for="funfair">GSM</label>' +
+        '<input type="checkbox" class="event-type" name="LTE" value="LTE" checked="true">' +
+        '<label for="trade">LTE</label>' +
+        '</div>',
+      classes: 'btn-group-vertical btn-group-lg',
+      style:
+      {
+        margin: '15px',
+        padding: '0px 0 0 0',
+        cursor: 'pointer',
+      },
+      events:
+      {
+        click: function (data) {
+          for (let input of document.querySelectorAll('input')) {
+            //Listen to 'change' event of all inputs
+            input.onchange = (e) => {
+              clusters.clearLayers()
+              updateCheckboxStates()
+              //  clusters.addData(myData) 
+              var a = L.geoJSON(myData, {
+                pointToLayer: onPoint,
+                filter: (feature) => {
+                  const isEventTypeChecked = checkboxStates.eventTypes.includes(feature.properties.radio)
+                  return isEventTypeChecked
+                }
+              }).addTo(map);
+              map.addLayer(clusters);
+            }
 
-    function addCluster(){
-    console.log("calling geojson1")
-    console.log(rodents)
-    clusters.removeLayer(rodents);
-    clusters.addLayer(rodents);
-    map.addLayer(clusters);
-    }
-    
-   
-var clusters =  L.markerClusterGroup();
-clusters.addLayer(rodents);
-map.addLayer(clusters);*/
+
+
+          }
+
+
+        },
+      }
+    })
+      .addTo(map)
+    updateCheckboxStates();
+
 
 
 
