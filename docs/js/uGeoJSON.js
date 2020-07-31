@@ -22,6 +22,7 @@ L.UGeoJSONLayer = L.GeoJSON.extend({
     callback: function (data) {
         console.log("callback")
       if(this.options.light) {
+        console.log("cleaning")
         this.clearLayers();//if needed, we clean the layers
       }
   
